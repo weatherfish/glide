@@ -11,10 +11,9 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
-
+import android.os.Build;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 import com.bumptech.glide.tests.Util;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -88,20 +87,19 @@ public class CircleCropTest {
     }
   }
 
-  @TargetApi(12)
+  @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
   private Bitmap createBitmapWithRedCircle(int width, int height) {
-    Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+    int minEdge = Math.min(width, height);
+    float radius = minEdge / 2f;
+
+    Bitmap result = Bitmap.createBitmap(minEdge, minEdge, Bitmap.Config.ARGB_8888);
     result.setHasAlpha(true);
     Canvas canvas = new Canvas(result);
     Paint paint = new Paint();
+    paint.setAntiAlias(true);
     paint.setColor(Color.RED);
 
-    int minEdge = Math.min(width, height);
-    float radius = minEdge / 2f;
-    int left = (width - minEdge) / 2;
-    int top = (height - minEdge) / 2;
-
-    canvas.drawCircle(left + radius, top + radius, radius, paint);
+    canvas.drawCircle(radius, radius, radius, paint);
     return result;
   }
 

@@ -5,6 +5,7 @@ import java.util.Arrays;
 /**
  * Adapter for handling primitive int arrays.
  */
+@SuppressWarnings("PMD.UseVarargs")
 public final class IntegerArrayAdapter implements ArrayAdapterInterface<int[]> {
   private static final String TAG = "IntegerArrayPool";
 

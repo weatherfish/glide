@@ -6,23 +6,23 @@ import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.util.DisplayMetrics;
 import android.util.Log;
-
 import com.bumptech.glide.load.DecodeFormat;
 import com.bumptech.glide.load.Option;
 import com.bumptech.glide.load.Options;
 import com.bumptech.glide.load.engine.Resource;
+import com.bumptech.glide.load.engine.bitmap_recycle.ArrayPool;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
-import com.bumptech.glide.load.engine.bitmap_recycle.ByteArrayPool;
 import com.bumptech.glide.load.resource.bitmap.DownsampleStrategy.SampleSizeRounding;
 import com.bumptech.glide.request.target.Target;
 import com.bumptech.glide.util.Preconditions;
 import com.bumptech.glide.util.Util;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
 
@@ -47,6 +47,17 @@ public final class Downsampler {
       Option.memory("com.bumptech.glide.load.resource.bitmap.Downsampler.DownsampleStrategy",
           DownsampleStrategy.AT_LEAST);
 
+  private static final String WBMP_MIME_TYPE = "image/vnd.wap.wbmp";
+  private static final String ICO_MIME_TYPE = "image/x-ico";
+  private static final Set<String> NO_DOWNSAMPLE_PRE_N_MIME_TYPES =
+      Collections.unmodifiableSet(
+          new HashSet<>(
+              Arrays.asList(
+                  WBMP_MIME_TYPE,
+                  ICO_MIME_TYPE
+              )
+          )
+      );
   private static final DecodeCallbacks EMPTY_CALLBACKS = new DecodeCallbacks() {
     @Override
     public void onObtainBounds() {
@@ -73,10 +84,10 @@ public final class Downsampler {
 
   private final BitmapPool bitmapPool;
   private final DisplayMetrics displayMetrics;
-  private final ByteArrayPool byteArrayPool;
+  private final ArrayPool byteArrayPool;
 
   public Downsampler(DisplayMetrics displayMetrics, BitmapPool bitmapPool,
-      ByteArrayPool byteArrayPool) {
+       ArrayPool byteArrayPool) {
     this.displayMetrics = Preconditions.checkNotNull(displayMetrics);
     this.bitmapPool = Preconditions.checkNotNull(bitmapPool);
     this.byteArrayPool = Preconditions.checkNotNull(byteArrayPool);
@@ -134,7 +145,7 @@ public final class Downsampler {
     Preconditions.checkArgument(is.markSupported(), "You must provide an InputStream that supports"
         + " mark()");
 
-    byte[] bytesForOptions = byteArrayPool.get(ByteArrayPool.STANDARD_BUFFER_SIZE_BYTES);
+    byte[] bytesForOptions = byteArrayPool.get(ArrayPool.STANDARD_BUFFER_SIZE_BYTES, byte[].class);
     BitmapFactory.Options bitmapFactoryOptions = getDefaultOptions();
     bitmapFactoryOptions.inTempStorage = bytesForOptions;
 
@@ -147,7 +158,7 @@ public final class Downsampler {
       return BitmapResource.obtain(result, bitmapPool);
     } finally {
       releaseOptions(bitmapFactoryOptions);
-      byteArrayPool.put(bytesForOptions);
+      byteArrayPool.put(bytesForOptions, byte[].class);
     }
   }
 
@@ -162,7 +173,7 @@ public final class Downsampler {
     String sourceMimeType = options.outMimeType;
 
     int orientation = getOrientation(is);
-    int degreesToRotate = TransformationUtils.getExifOrientationDegrees(getOrientation(is));
+    int degreesToRotate = TransformationUtils.getExifOrientationDegrees(orientation);
 
     options.inPreferredConfig = getConfig(is, decodeFormat);
     if (options.inPreferredConfig != Bitmap.Config.ARGB_8888) {
@@ -240,9 +251,17 @@ public final class Downsampler {
         ? Math.max(widthScaleFactor, heightScaleFactor)
         : Math.min(widthScaleFactor, heightScaleFactor);
 
-    int powerOfTwoSampleSize = Math.max(1, Integer.highestOneBit(scaleFactor));
-    if (rounding == SampleSizeRounding.MEMORY && powerOfTwoSampleSize < (1.f / exactScaleFactor)) {
-      powerOfTwoSampleSize = powerOfTwoSampleSize << 1;
+    int powerOfTwoSampleSize;
+    // BitmapFactory does not support downsampling wbmp files on platforms <= M. See b/27305903.
+    if (Build.VERSION.SDK_INT <= 23
+        && NO_DOWNSAMPLE_PRE_N_MIME_TYPES.contains(options.outMimeType)) {
+      powerOfTwoSampleSize = 1;
+    } else {
+      powerOfTwoSampleSize = Math.max(1, Integer.highestOneBit(scaleFactor));
+      if (rounding == SampleSizeRounding.MEMORY
+          && powerOfTwoSampleSize < (1.f / exactScaleFactor)) {
+        powerOfTwoSampleSize = powerOfTwoSampleSize << 1;
+      }
     }
 
     float adjustedScaleFactor = powerOfTwoSampleSize * exactScaleFactor;
@@ -400,17 +419,19 @@ public final class Downsampler {
     int sourceHeight = options.outHeight;
     String outMimeType = options.outMimeType;
     final Bitmap result;
+    TransformationUtils.getBitmapDrawableLock().lock();
     try {
       result = BitmapFactory.decodeStream(is, null, options);
     } catch (IllegalArgumentException e) {
       throw newIoExceptionForInBitmapAssertion(e, sourceWidth, sourceHeight, outMimeType, options);
+    } finally {
+      TransformationUtils.getBitmapDrawableLock().unlock();
     }
 
     if (options.inJustDecodeBounds) {
       is.reset();
 
     }
-
     return result;
   }
 

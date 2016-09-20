@@ -1,9 +1,7 @@
 package com.bumptech.glide.load;
 
 import android.support.annotation.Nullable;
-
 import com.bumptech.glide.util.Preconditions;
-
 import java.security.MessageDigest;
 
 /**
@@ -142,6 +140,8 @@ public final class Option<T> {
   /**
    * An interface that updates a {@link MessageDigest} with the given value as part of a process to
    * generate a disk cache key.
+   *
+   * @param <T> The type of the option.
    */
   public interface CacheKeyUpdater<T> {
     /**

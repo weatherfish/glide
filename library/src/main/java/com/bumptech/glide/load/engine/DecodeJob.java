@@ -2,7 +2,6 @@ package com.bumptech.glide.load.engine;
 
 import android.support.v4.util.Pools;
 import android.util.Log;
-
 import com.bumptech.glide.GlideContext;
 import com.bumptech.glide.Priority;
 import com.bumptech.glide.Registry;
@@ -18,7 +17,6 @@ import com.bumptech.glide.load.engine.cache.DiskCache;
 import com.bumptech.glide.util.LogTime;
 import com.bumptech.glide.util.pool.FactoryPools.Poolable;
 import com.bumptech.glide.util.pool.StateVerifier;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -142,7 +140,7 @@ class DecodeJob<R> implements DataFetcherGenerator.FetcherReadyCallback,
   }
 
   /**
-   * Called when we've finished encoding (either becasue the encode process is complete, or because
+   * Called when we've finished encoding (either because the encode process is complete, or because
    * we don't have anything to encode).
    */
   private void onEncodeComplete() {
@@ -561,7 +559,7 @@ class DecodeJob<R> implements DataFetcherGenerator.FetcherReadyCallback,
     private ResourceEncoder<Z> encoder;
     private LockedResource<Z> toEncode;
 
-    // We just need the encoder and resouce type to match, which this will enforce.
+    // We just need the encoder and resource type to match, which this will enforce.
     @SuppressWarnings("unchecked")
     <X> void init(Key key, ResourceEncoder<X> encoder, LockedResource<X> toEncode) {
       this.key = key;

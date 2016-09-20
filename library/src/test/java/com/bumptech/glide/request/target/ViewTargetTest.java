@@ -18,10 +18,10 @@ import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
-
 import com.bumptech.glide.request.Request;
 import com.bumptech.glide.request.transition.Transition;
-
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,17 +35,13 @@ import org.robolectric.annotation.Implements;
 import org.robolectric.internal.ShadowExtractor;
 import org.robolectric.shadows.ShadowDisplay;
 import org.robolectric.shadows.ShadowView;
-import org.robolectric.shadows.ShadowViewTreeObserver;
-
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE, sdk = 18, shadows = { ViewTargetTest.SizedShadowView.class,
     ViewTargetTest.PreDrawShadowViewTreeObserver.class })
 public class ViewTargetTest {
   private View view;
-  private ViewTarget target;
+  private ViewTarget<View, Object> target;
   private SizedShadowView shadowView;
   private PreDrawShadowViewTreeObserver shadowObserver;
 
@@ -393,8 +389,19 @@ public class ViewTargetTest {
     new TestViewTarget(null);
   }
 
+  @Test
+  public void testDecreasesDimensionsByViewPadding() {
+    SizeReadyCallback cb = mock(SizeReadyCallback.class);
+    view.setLayoutParams(new LayoutParams(100, 100));
+    view.setPadding(25, 25, 25, 25);
+
+    target.getSize(cb);
+
+    verify(cb).onSizeReady(50, 50);
+  }
+
   @Implements(ViewTreeObserver.class)
-  public static class PreDrawShadowViewTreeObserver extends ShadowViewTreeObserver {
+  public static class PreDrawShadowViewTreeObserver {
     private CopyOnWriteArrayList<OnPreDrawListener> preDrawListeners = new CopyOnWriteArrayList<>();
     private boolean isAlive = true;
 
@@ -479,7 +486,7 @@ public class ViewTargetTest {
     }
 
     @Override
-    public void onResourceReady(Object resource, Transition transition) {
+    public void onResourceReady(Object resource, Transition<? super Object> transition) {
 
     }
 

@@ -4,9 +4,7 @@ import android.annotation.TargetApi;
 import android.graphics.Bitmap;
 import android.os.Build;
 import android.support.annotation.Nullable;
-
 import com.bumptech.glide.util.Util;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -213,7 +211,7 @@ public class SizeConfigStrategy implements LruPoolStrategy {
       if (o instanceof Key) {
         Key other = (Key) o;
         return size == other.size
-            && (config == null ? other.config == null : config.equals(other.config));
+            && Util.bothNullOrEqual(config, other.config);
       }
       return false;
     }

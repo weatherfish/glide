@@ -1,8 +1,6 @@
 package com.bumptech.glide;
 
-import android.content.Context;
 import android.support.v4.util.Pools.Pool;
-
 import com.bumptech.glide.load.Encoder;
 import com.bumptech.glide.load.ResourceDecoder;
 import com.bumptech.glide.load.ResourceEncoder;
@@ -22,7 +20,6 @@ import com.bumptech.glide.provider.ModelToResourceClassCache;
 import com.bumptech.glide.provider.ResourceDecoderRegistry;
 import com.bumptech.glide.provider.ResourceEncoderRegistry;
 import com.bumptech.glide.util.pool.FactoryPools;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -43,9 +40,8 @@ public class Registry {
   private final LoadPathCache loadPathCache = new LoadPathCache();
   private final Pool<List<Exception>> exceptionListPool = FactoryPools.threadSafeList();
 
-  public Registry(Context context) {
-    this.modelLoaderRegistry =
-        new ModelLoaderRegistry(context.getApplicationContext(), exceptionListPool);
+  public Registry() {
+    this.modelLoaderRegistry = new ModelLoaderRegistry(exceptionListPool);
     this.encoderRegistry = new EncoderRegistry();
     this.decoderRegistry = new ResourceDecoderRegistry();
     this.resourceEncoderRegistry = new ResourceEncoderRegistry();
@@ -233,7 +229,7 @@ public class Registry {
       super("Failed to find any ModelLoaders for model: " + model);
     }
 
-    public NoModelLoaderAvailableException(Class modelClass, Class dataClass) {
+    public NoModelLoaderAvailableException(Class<?> modelClass, Class<?> dataClass) {
       super("Failed to find any ModelLoaders for model: " + modelClass + " and data: " + dataClass);
     }
   }

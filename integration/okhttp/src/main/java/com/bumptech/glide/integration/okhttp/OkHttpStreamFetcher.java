@@ -1,7 +1,6 @@
 package com.bumptech.glide.integration.okhttp;
 
 import android.util.Log;
-
 import com.bumptech.glide.Priority;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.data.DataFetcher;
@@ -11,14 +10,16 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 import com.squareup.okhttp.ResponseBody;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 
 /**
  * Fetches an {@link InputStream} using the okhttp library.
+ *
+ * @deprecated replaced with com.bumptech.glide.integration.okhttp3.OkHttpStreamFetcher.
  */
+@Deprecated
 public class OkHttpStreamFetcher implements DataFetcher<InputStream> {
   private static final String TAG = "OkHttpFetcher";
   private final OkHttpClient client;
@@ -52,9 +53,9 @@ public class OkHttpStreamFetcher implements DataFetcher<InputStream> {
 
       @Override
       public void onResponse(Response response) throws IOException {
+        responseBody = response.body();
         if (response.isSuccessful()) {
           long contentLength = response.body().contentLength();
-          responseBody = response.body();
           stream = ContentLengthInputStream.obtain(responseBody.byteStream(), contentLength);
         } else if (Log.isLoggable(TAG, Log.DEBUG)) {
           Log.d(TAG, "OkHttp got error response: " + response.code() + ", " + response.message());

@@ -22,14 +22,14 @@ import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-
 import com.bumptech.glide.gifdecoder.GifDecoder;
 import com.bumptech.glide.load.Transformation;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 import com.bumptech.glide.load.resource.gif.GifDrawableTest.BitmapTrackingShadowCanvas;
 import com.bumptech.glide.tests.GlideShadowLooper;
 import com.bumptech.glide.tests.Util;
-
+import java.util.HashSet;
+import java.util.Set;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,9 +43,6 @@ import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
 import org.robolectric.internal.ShadowExtractor;
 import org.robolectric.shadows.ShadowCanvas;
-
-import java.util.HashSet;
-import java.util.Set;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE, sdk = 18,
@@ -77,7 +74,7 @@ public class GifDrawableTest {
     frameWidth = 120;
     frameHeight = 450;
     firstFrame = Bitmap.createBitmap(frameWidth, frameHeight, Bitmap.Config.RGB_565);
-    drawable = new GifDrawable(RuntimeEnvironment.application, frameLoader, bitmapPool, paint);
+    drawable = new GifDrawable(frameLoader, bitmapPool, paint);
     when(frameLoader.getWidth()).thenReturn(frameWidth);
     when(frameLoader.getHeight()).thenReturn(frameHeight);
     when(frameLoader.getCurrentFrame()).thenReturn(firstFrame);
@@ -104,7 +101,7 @@ public class GifDrawableTest {
   @Test
   public void testDoesDrawCurrentFrameIfOneIsAvailable() {
     Canvas canvas = mock(Canvas.class);
-    Bitmap currentFrame = Bitmap.createBitmap(100123, 123141, Bitmap.Config.ARGB_4444);
+    Bitmap currentFrame = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_4444);
     when(frameLoader.getCurrentFrame()).thenReturn(currentFrame);
 
     drawable.draw(canvas);
@@ -543,6 +540,7 @@ public class GifDrawableTest {
 
   @Test
   public void testReturnsCurrentTransformationInGetFrameTransformation() {
+    @SuppressWarnings("unchecked")
     Transformation<Bitmap> newTransformation = mock(Transformation.class);
     Bitmap bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888);
     drawable.setFrameTransformation(newTransformation, bitmap);

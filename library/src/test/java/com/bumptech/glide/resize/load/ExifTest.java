@@ -3,24 +3,23 @@ package com.bumptech.glide.resize.load;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertEquals;
 
-import com.bumptech.glide.load.engine.bitmap_recycle.LruByteArrayPool;
+import com.bumptech.glide.load.engine.bitmap_recycle.ArrayPool;
+import com.bumptech.glide.load.engine.bitmap_recycle.LruArrayPool;
 import com.bumptech.glide.load.resource.bitmap.ImageHeaderParser;
 import com.bumptech.glide.testutil.TestResourceUtil;
-
+import java.io.IOException;
+import java.io.InputStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE, sdk = 18)
 public class ExifTest {
 
-  private LruByteArrayPool byteArrayPool;
+  private ArrayPool byteArrayPool;
 
   private InputStream open(String imageName) throws IOException {
     return TestResourceUtil.openResource(getClass(), "exif-orientation-examples/" + imageName);
@@ -47,7 +46,7 @@ public class ExifTest {
 
   @Before
   public void setUp() {
-    byteArrayPool = new LruByteArrayPool();
+    byteArrayPool = new LruArrayPool();
   }
 
   @Test
@@ -73,11 +72,11 @@ public class ExifTest {
   @Test
   public void testHandlesInexactSizesInByteArrayPools() {
     for (int i = 1; i <= 8; i++) {
-      byteArrayPool.put(new byte[LruByteArrayPool.STANDARD_BUFFER_SIZE_BYTES]);
+      byteArrayPool.put(new byte[ArrayPool.STANDARD_BUFFER_SIZE_BYTES], byte[].class);
       assertOrientation("Portrait", i);
     }
     for (int i = 1; i <= 8; i++) {
-      byteArrayPool.put(new byte[LruByteArrayPool.STANDARD_BUFFER_SIZE_BYTES]);
+      byteArrayPool.put(new byte[ArrayPool.STANDARD_BUFFER_SIZE_BYTES], byte[].class);
       assertOrientation("Landscape", i);
     }
   }

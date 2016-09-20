@@ -5,7 +5,6 @@ import android.graphics.drawable.Drawable;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v4.util.Pools;
 import android.util.Log;
-
 import com.bumptech.glide.GlideContext;
 import com.bumptech.glide.Priority;
 import com.bumptech.glide.load.DataSource;
@@ -204,7 +203,10 @@ public final class SingleRequest<R> implements Request,
         width = overrideWidth;
         height = overrideHeight;
       }
-      onLoadFailed(new GlideException("Received null model"));
+      // Only log at more verbose log levels if the user has set a fallback drawable, because
+      // fallback Drawables indicate the user expects null models occasionally.
+      int logLevel = getFallbackDrawable() == null ? Log.WARN : Log.DEBUG;
+      onLoadFailed(new GlideException("Received null model"), logLevel);
       return;
     }
 
@@ -278,7 +280,7 @@ public final class SingleRequest<R> implements Request,
     status = Status.PAUSED;
   }
 
-  private void releaseResource(Resource resource) {
+  private void releaseResource(Resource<?> resource) {
     engine.release(resource);
     this.resource = null;
   }
@@ -338,9 +340,9 @@ public final class SingleRequest<R> implements Request,
     return fallbackDrawable;
   }
 
-  private Drawable loadDrawable(int resouceId) {
+  private Drawable loadDrawable(int resourceId) {
     Resources resources = glideContext.getResources();
-    return ResourcesCompat.getDrawable(resources, resouceId, requestOptions.getTheme());
+    return ResourcesCompat.getDrawable(resources, resourceId, requestOptions.getTheme());
   }
 
   private void setErrorPlaceholder() {
@@ -370,8 +372,8 @@ public final class SingleRequest<R> implements Request,
     status = Status.RUNNING;
 
     float sizeMultiplier = requestOptions.getSizeMultiplier();
-    this.width = Math.round(sizeMultiplier * width);
-    this.height = Math.round(sizeMultiplier * height);
+    this.width = maybeApplySizeMultiplier(width, sizeMultiplier);
+    this.height = maybeApplySizeMultiplier(height, sizeMultiplier);
 
     if (Log.isLoggable(TAG, Log.VERBOSE)) {
       logV("finished setup for calling load in " + LogTime.getElapsedMillis(startTime));
@@ -390,10 +392,15 @@ public final class SingleRequest<R> implements Request,
         requestOptions.isTransformationRequired(),
         requestOptions.getOptions(),
         requestOptions.isMemoryCacheable(),
+        requestOptions.getUseUnlimitedSourceGeneratorsPool(),
         this);
     if (Log.isLoggable(TAG, Log.VERBOSE)) {
       logV("finished onSizeReady in " + LogTime.getElapsedMillis(startTime));
     }
+  }
+
+  private static int maybeApplySizeMultiplier(int size, float sizeMultiplier) {
+    return size == Target.SIZE_ORIGINAL ? size : Math.round(sizeMultiplier * size);
   }
 
   private boolean canSetResource() {
@@ -486,9 +493,13 @@ public final class SingleRequest<R> implements Request,
    */
   @Override
   public void onLoadFailed(GlideException e) {
+    onLoadFailed(e, Log.WARN);
+  }
+
+  private void onLoadFailed(GlideException e, int maxLogLevel) {
     stateVerifier.throwIfRecycled();
     int logLevel = glideContext.getLogLevel();
-    if (logLevel <= Log.WARN) {
+    if (logLevel <= maxLogLevel) {
       Log.w(GLIDE_TAG, "Load failed for " + model + " with size [" + width + "x" + height + "]", e);
       if (logLevel <= Log.INFO) {
         e.logRootCauses(GLIDE_TAG);

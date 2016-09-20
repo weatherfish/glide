@@ -7,10 +7,8 @@ import static com.bumptech.glide.load.resource.bitmap.ImageHeaderParser.ImageTyp
 import static com.bumptech.glide.load.resource.bitmap.ImageHeaderParser.ImageType.UNKNOWN;
 
 import android.util.Log;
-
-import com.bumptech.glide.load.engine.bitmap_recycle.ByteArrayPool;
+import com.bumptech.glide.load.engine.bitmap_recycle.ArrayPool;
 import com.bumptech.glide.util.Preconditions;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -91,16 +89,16 @@ public class ImageHeaderParser {
   private static final int WEBP_EXTENDED_ALPHA_FLAG = 1 << 4;
   private static final int WEBP_LOSSLESS_ALPHA_FLAG = 1 << 3;
 
-  private final ByteArrayPool byteArrayPool;
+  private final ArrayPool byteArrayPool;
   private final Reader reader;
 
-  public ImageHeaderParser(InputStream is, ByteArrayPool byteArrayPool) {
+  public ImageHeaderParser(InputStream is, ArrayPool byteArrayPool) {
     Preconditions.checkNotNull(is);
     this.byteArrayPool = Preconditions.checkNotNull(byteArrayPool);
     reader = new StreamReader(is);
   }
 
-  public ImageHeaderParser(ByteBuffer byteBuffer, ByteArrayPool byteArrayPool) {
+  public ImageHeaderParser(ByteBuffer byteBuffer, ArrayPool byteArrayPool) {
     Preconditions.checkNotNull(byteBuffer);
     this.byteArrayPool = Preconditions.checkNotNull(byteArrayPool);
     reader = new ByteBufferReader(byteBuffer);
@@ -190,11 +188,11 @@ public class ImageHeaderParser {
         return UNKNOWN_ORIENTATION;
       }
 
-      byte[] exifData = byteArrayPool.get(exifSegmentLength);
+      byte[] exifData = byteArrayPool.get(exifSegmentLength, byte[].class);
       try {
         return parseExifSegment(exifData, exifSegmentLength);
       } finally {
-        byteArrayPool.put(exifData);
+        byteArrayPool.put(exifData, byte[].class);
       }
     }
   }

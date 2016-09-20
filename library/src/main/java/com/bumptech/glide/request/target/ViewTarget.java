@@ -6,16 +6,15 @@ import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.support.annotation.Nullable;
+import android.support.v4.view.ViewCompat;
 import android.util.Log;
 import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
-
 import com.bumptech.glide.request.Request;
 import com.bumptech.glide.util.Preconditions;
-
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
@@ -204,7 +203,13 @@ public abstract class ViewTarget<T extends View, Z> extends BaseTarget<Z> {
       int currentWidth = getViewWidthOrParam();
       int currentHeight = getViewHeightOrParam();
       if (isSizeValid(currentWidth) && isSizeValid(currentHeight)) {
-        cb.onSizeReady(currentWidth, currentHeight);
+        int paddingAdjustedWidth = currentWidth == WindowManager.LayoutParams.WRAP_CONTENT
+            ? currentWidth
+            : currentWidth - ViewCompat.getPaddingStart(view) - ViewCompat.getPaddingEnd(view);
+        int paddingAdjustedHeight = currentHeight == LayoutParams.WRAP_CONTENT
+            ? currentHeight
+            : currentHeight - view.getPaddingTop() - view.getPaddingBottom();
+        cb.onSizeReady(paddingAdjustedWidth, paddingAdjustedHeight);
       } else {
         // We want to notify callbacks in the order they were added and we only expect one or two
         // callbacks to

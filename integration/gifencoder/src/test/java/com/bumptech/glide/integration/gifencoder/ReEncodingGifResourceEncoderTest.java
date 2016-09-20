@@ -14,7 +14,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.graphics.Bitmap;
-
 import com.bumptech.glide.gifdecoder.GifDecoder;
 import com.bumptech.glide.gifdecoder.GifHeader;
 import com.bumptech.glide.gifdecoder.GifHeaderParser;
@@ -27,7 +26,10 @@ import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
 import com.bumptech.glide.load.resource.UnitTransformation;
 import com.bumptech.glide.load.resource.gif.GifDrawable;
 import com.bumptech.glide.util.ByteBufferUtil;
-
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,11 +40,6 @@ import org.mockito.MockitoAnnotations;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
 
 /**
  * Tests for {@link com.bumptech.glide.integration.gifencoder.ReEncodingGifResourceEncoder}.
@@ -75,6 +72,7 @@ public class ReEncodingGifResourceEncoderTest {
     when(factory.buildFrameResource(any(Bitmap.class), any(BitmapPool.class)))
         .thenReturn(frameResource);
 
+    // TODO Util.anyResource once Util is moved to testutil module (remove unchecked above!)
     when(frameTransformation.transform(any(Resource.class), anyInt(), anyInt()))
         .thenReturn(frameResource);
 

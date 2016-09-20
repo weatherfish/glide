@@ -3,7 +3,6 @@ package com.bumptech.glide;
 import android.content.Context;
 import android.os.Build;
 import android.util.Log;
-
 import com.bumptech.glide.load.DecodeFormat;
 import com.bumptech.glide.load.engine.Engine;
 import com.bumptech.glide.load.engine.bitmap_recycle.ArrayPool;
@@ -17,6 +16,8 @@ import com.bumptech.glide.load.engine.cache.LruResourceCache;
 import com.bumptech.glide.load.engine.cache.MemoryCache;
 import com.bumptech.glide.load.engine.cache.MemorySizeCalculator;
 import com.bumptech.glide.load.engine.executor.GlideExecutor;
+import com.bumptech.glide.manager.ConnectivityMonitorFactory;
+import com.bumptech.glide.manager.DefaultConnectivityMonitorFactory;
 import com.bumptech.glide.request.RequestOptions;
 
 /**
@@ -33,6 +34,7 @@ public final class GlideBuilder {
   private GlideExecutor diskCacheExecutor;
   private DiskCache.Factory diskCacheFactory;
   private MemorySizeCalculator memorySizeCalculator;
+  private ConnectivityMonitorFactory connectivityMonitorFactory;
   private int logLevel = Log.INFO;
   private RequestOptions defaultRequestOptions = new RequestOptions();
 
@@ -206,6 +208,19 @@ public final class GlideBuilder {
   }
 
   /**
+   * Sets the {@link com.bumptech.glide.manager.ConnectivityMonitorFactory}
+   * to use to notify {@link com.bumptech.glide.RequestManager} of connectivity events.
+   * If not set {@link com.bumptech.glide.manager.DefaultConnectivityMonitorFactory} would be used.
+   *
+   * @param factory The factory to use
+   * @return This builder.
+   */
+  public GlideBuilder setConnectivityMonitorFactory(ConnectivityMonitorFactory factory) {
+    this.connectivityMonitorFactory = factory;
+    return this;
+  }
+
+  /**
    * Sets a log level constant from those in {@link Log} to indicate the desired log verbosity.
    *
    * <p>The level must be one of {@link Log#VERBOSE}, {@link Log#DEBUG}, {@link Log#INFO},
@@ -247,15 +262,19 @@ public final class GlideBuilder {
 
   Glide createGlide() {
     if (sourceExecutor == null) {
-      final int cores = Math.max(1, Runtime.getRuntime().availableProcessors());
-      sourceExecutor = new GlideExecutor("source", cores);
+      sourceExecutor = GlideExecutor.newSourceExecutor();
     }
+
     if (diskCacheExecutor == null) {
-      diskCacheExecutor = new GlideExecutor("disk-cache", 1);
+      diskCacheExecutor = GlideExecutor.newDiskCacheExecutor();
     }
 
     if (memorySizeCalculator == null) {
       memorySizeCalculator = new MemorySizeCalculator.Builder(context).build();
+    }
+
+    if (connectivityMonitorFactory == null) {
+      connectivityMonitorFactory = new DefaultConnectivityMonitorFactory();
     }
 
     if (bitmapPool == null) {
@@ -280,15 +299,17 @@ public final class GlideBuilder {
     }
 
     if (engine == null) {
-      engine = new Engine(memoryCache, diskCacheFactory, diskCacheExecutor, sourceExecutor);
+      engine = new Engine(memoryCache, diskCacheFactory, diskCacheExecutor, sourceExecutor,
+          GlideExecutor.newUnlimitedSourceExecutor());
     }
 
     return new Glide(
+        context,
         engine,
         memoryCache,
         bitmapPool,
         arrayPool,
-        context,
+        connectivityMonitorFactory,
         logLevel,
         defaultRequestOptions.lock());
   }

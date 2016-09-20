@@ -1,7 +1,6 @@
 package com.bumptech.glide.load.model;
 
 import android.text.TextUtils;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,12 +46,18 @@ public final class LazyHeaders implements Headers {
       int size = factories.size();
       for (int i = 0; i < size; i++) {
         LazyHeaderFactory factory = factories.get(i);
-        sb.append(factory.buildHeader());
-        if (i != factories.size() - 1) {
-          sb.append(',');
+        String header = factory.buildHeader();
+        if (!TextUtils.isEmpty(header)) {
+          sb.append(header);
+          if (i != factories.size() - 1) {
+            sb.append(',');
+          }
         }
       }
-      combinedHeaders.put(entry.getKey(), sb.toString());
+      String values = sb.toString();
+      if (!TextUtils.isEmpty(values)) {
+        combinedHeaders.put(entry.getKey(), sb.toString());
+      }
     }
 
     return combinedHeaders;
@@ -117,15 +122,15 @@ public final class LazyHeaders implements Headers {
     }
 
     private boolean copyOnModify = true;
-    private boolean isEncodingDefault = true;
     private Map<String, List<LazyHeaderFactory>> headers = DEFAULT_HEADERS;
-    private boolean isUserAgentDefault = headers.containsKey(DEFAULT_USER_AGENT);
+    private boolean isEncodingDefault = true;
+    private boolean isUserAgentDefault = true;
 
     /**
      * Adds a value for the given header and returns this builder.
      *
      * <p> Use {@link #addHeader(String, LazyHeaderFactory)} if obtaining the value requires I/O
-     * (ie an oauth token). </p>
+     * (i.e. an OAuth token). </p>
      *
      * @see #addHeader(String, LazyHeaderFactory)
 
@@ -162,7 +167,7 @@ public final class LazyHeaders implements Headers {
      * <p> If the given value is {@code null}, the header at the given key will be removed. </p>
      *
      * <p> Use {@link #setHeader(String, LazyHeaderFactory)} if obtaining the value requires I/O
-     * (ie an oauth token). </p>
+     * (i.e. an OAuth token). </p>
      */
     public Builder setHeader(String key, String value) {
       return setHeader(key, value == null ? null : new StringHeaderFactory(value));

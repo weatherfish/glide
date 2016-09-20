@@ -44,6 +44,8 @@ def getAndroidJar() {
     "${getAndroidSdkDirectory()}/platforms/${getAndroidCompileSdkVersion()}/android.jar"
 }
 
+project.archivesBaseName = "${POM_ARTIFACT_ID}-${VERSION_NAME}"
+
 // Generate javadocs and sources containing batched documentation and sources for all internal projects.
 ['release', 'debug'].each { variantName ->
 
@@ -57,7 +59,7 @@ def getAndroidJar() {
         classpath = files(getAndroidLibraryVariants(variantName).collect {
             files(it.javaCompile.classpath.files, getAndroidJar())
         })
-        classpath += getInternalJavaProjects().collect { files(it.configurations.compile) }
+        classpath += getInternalJavaProjects().collect { files(it.configurations.compile) }.sum()
 
         options {
             links("http://docs.oracle.com/javase/7/docs/api/")
@@ -102,5 +104,3 @@ artifacts {
         classifier 'sources'
     }
 }
-
-apply from: "$rootProject.projectDir/scripts/upload.gradle"

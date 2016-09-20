@@ -4,14 +4,12 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
 import android.os.ParcelFileDescriptor;
-
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.Option;
 import com.bumptech.glide.load.Options;
 import com.bumptech.glide.load.ResourceDecoder;
 import com.bumptech.glide.load.engine.Resource;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
@@ -125,17 +123,20 @@ public class VideoBitmapDecoder implements ResourceDecoder<ParcelFileDescriptor,
     }
     Integer frameOption = options.get(FRAME_OPTION);
 
-    MediaMetadataRetriever mediaMetadataRetriever = factory.build();
-    mediaMetadataRetriever.setDataSource(resource.getFileDescriptor());
     final Bitmap result;
-    if (frameTimeMicros == DEFAULT_FRAME) {
-      result = mediaMetadataRetriever.getFrameAtTime();
-    } else if (frameOption == null) {
-      result = mediaMetadataRetriever.getFrameAtTime(frameTimeMicros);
-    } else {
-      result = mediaMetadataRetriever.getFrameAtTime(frameTimeMicros, frameOption);
+    MediaMetadataRetriever mediaMetadataRetriever = factory.build();
+    try {
+      mediaMetadataRetriever.setDataSource(resource.getFileDescriptor());
+      if (frameTimeMicros == DEFAULT_FRAME) {
+        result = mediaMetadataRetriever.getFrameAtTime();
+      } else if (frameOption == null) {
+        result = mediaMetadataRetriever.getFrameAtTime(frameTimeMicros);
+      } else {
+        result = mediaMetadataRetriever.getFrameAtTime(frameTimeMicros, frameOption);
+      }
+    } finally {
+      mediaMetadataRetriever.release();
     }
-    mediaMetadataRetriever.release();
     resource.close();
     return BitmapResource.obtain(result, bitmapPool);
   }

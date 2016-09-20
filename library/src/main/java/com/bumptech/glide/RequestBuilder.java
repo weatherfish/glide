@@ -6,7 +6,6 @@ import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.widget.ImageView;
-
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.BaseRequestOptions;
 import com.bumptech.glide.request.FutureTarget;
@@ -20,10 +19,9 @@ import com.bumptech.glide.request.ThumbnailRequestCoordinator;
 import com.bumptech.glide.request.target.PreloadTarget;
 import com.bumptech.glide.request.target.Target;
 import com.bumptech.glide.signature.ApplicationVersionSignature;
-import com.bumptech.glide.signature.StringSignature;
+import com.bumptech.glide.signature.ObjectKey;
 import com.bumptech.glide.util.Preconditions;
 import com.bumptech.glide.util.Util;
-
 import java.io.File;
 import java.net.URL;
 import java.util.UUID;
@@ -37,7 +35,7 @@ import java.util.UUID;
 public class RequestBuilder<TranscodeType> implements Cloneable {
   private static final TransitionOptions<?, ?> DEFAULT_ANIMATION_OPTIONS =
       new GenericTransitionOptions<Object>();
-  private static final BaseRequestOptions DOWNLOAD_ONLY_OPTIONS =
+  private static final BaseRequestOptions<?> DOWNLOAD_ONLY_OPTIONS =
       new RequestOptions().diskCacheStrategy(DiskCacheStrategy.DATA).priority(Priority.LOW)
           .skipMemoryCache(true);
 
@@ -77,7 +75,14 @@ public class RequestBuilder<TranscodeType> implements Cloneable {
     this.requestOptions = defaultRequestOptions;
   }
 
-  public RequestBuilder<TranscodeType> apply(BaseRequestOptions requestOptions) {
+  /**
+   * Applies the given options to the request, options set or unset in the given options will
+   * replace those previously set in options in this class.
+   *
+   * @see BaseRequestOptions#apply(BaseRequestOptions)
+   * @return This request builder.
+   */
+  public RequestBuilder<TranscodeType> apply(@NonNull BaseRequestOptions<?> requestOptions) {
     Preconditions.checkNotNull(requestOptions);
     BaseRequestOptions<?> toMutate = defaultRequestOptions == this.requestOptions
         ? this.requestOptions.clone() : this.requestOptions;
@@ -85,8 +90,17 @@ public class RequestBuilder<TranscodeType> implements Cloneable {
     return this;
   }
 
+  /**
+   * Sets the {@link TransitionOptions} to use to transition from the placeholder or thumbnail when
+   * this load completes.
+   *
+   * <p>The given {@link TransitionOptions} will replace any {@link TransitionOptions} set
+   * previously.
+   *
+   * @return This request builder.
+   */
   public RequestBuilder<TranscodeType> transition(
-      TransitionOptions<?, ? super TranscodeType> transitionOptions) {
+      @NonNull TransitionOptions<?, ? super TranscodeType> transitionOptions) {
     this.transitionOptions = Preconditions.checkNotNull(transitionOptions);
     return this;
   }
@@ -130,8 +144,8 @@ public class RequestBuilder<TranscodeType> implements Cloneable {
 
   /**
    * Loads a resource in an identical manner to this request except with the dimensions of the
-   * target multiplied by the given size multiplier. If the thumbnail load completes before the
-   * fullsize load, the thumbnail will be shown. If the thumbnail load completes after the fullsize
+   * target multiplied by the given size multiplier. If the thumbnail load completes before the full
+   * size load, the thumbnail will be shown. If the thumbnail load completes after the full size
    * load, the thumbnail will not be shown.
    *
    * <p> Note - The thumbnail resource will be smaller than the size requested so the target (or
@@ -143,7 +157,7 @@ public class RequestBuilder<TranscodeType> implements Cloneable {
    * and {@link com.bumptech.glide.load.Transformation}s. However,
    * {@link com.bumptech.glide.request.BaseRequestOptions#placeholder(int)} and
    * {@link com.bumptech.glide.request.BaseRequestOptions#error(int)}, and
-   * {@link #listener(RequestListener)} will only be used on the fullsize load and will not be
+   * {@link #listener(RequestListener)} will only be used on the full size load and will not be
    * copied for the thumbnail load. </p>
    *
    * <p> Recursive calls to thumbnail are supported. </p>
@@ -296,7 +310,7 @@ public class RequestBuilder<TranscodeType> implements Cloneable {
    * @see #load(Object)
    */
   public RequestBuilder<TranscodeType> load(@Nullable byte[] model) {
-    return loadGeneric(model).apply(signatureOf(new StringSignature(UUID.randomUUID().toString()))
+    return loadGeneric(model).apply(signatureOf(new ObjectKey(UUID.randomUUID().toString()))
         .diskCacheStrategy(DiskCacheStrategy.NONE).skipMemoryCache(true /*skipMemoryCache*/));
   }
 
@@ -328,11 +342,9 @@ public class RequestBuilder<TranscodeType> implements Cloneable {
    * @return The given target.
    * @see RequestManager#clear(Target)
    */
-  public <Y extends Target<TranscodeType>> Y into(Y target) {
+  public <Y extends Target<TranscodeType>> Y into(@NonNull Y target) {
     Util.assertMainThread();
-    if (target == null) {
-      throw new IllegalArgumentException("You must pass in a non null Target");
-    }
+    Preconditions.checkNotNull(target);
     if (!isModelSet) {
       throw new IllegalArgumentException("You must call #load() before calling #into()");
     }
@@ -364,9 +376,7 @@ public class RequestBuilder<TranscodeType> implements Cloneable {
    */
   public Target<TranscodeType> into(ImageView view) {
     Util.assertMainThread();
-    if (view == null) {
-      throw new IllegalArgumentException("You must pass in a non null View");
-    }
+    Preconditions.checkNotNull(view);
 
     if (!requestOptions.isTransformationSet()
         && requestOptions.isTransformationAllowed()
@@ -377,6 +387,9 @@ public class RequestBuilder<TranscodeType> implements Cloneable {
       switch (view.getScaleType()) {
         case CENTER_CROP:
           requestOptions.optionalCenterCrop(context);
+          break;
+        case CENTER_INSIDE:
+          requestOptions.optionalCenterInside(context);
           break;
         case FIT_CENTER:
         case FIT_START:
@@ -416,7 +429,7 @@ public class RequestBuilder<TranscodeType> implements Cloneable {
    * Returns a future that can be used to do a blocking get on a background thread.
    *
    * <p>This method defaults to {@link Target#SIZE_ORIGINAL} for the width and the height. However,
-   * since the width and height will be overriden by values passed to {@link
+   * since the width and height will be overridden by values passed to {@link
    * RequestOptions#override(int, int)}, this method can be used whenever {@link RequestOptions}
    * with override values are applied, or whenever you want to retrieve the image in its original
    * size.
@@ -525,7 +538,7 @@ public class RequestBuilder<TranscodeType> implements Cloneable {
    */
   @Deprecated
   public FutureTarget<File> downloadOnly(int width, int height) {
-    return getDownloadOnlyRequest().into(width, height);
+    return getDownloadOnlyRequest().submit(width, height);
   }
 
   private RequestBuilder<File> getDownloadOnlyRequest() {

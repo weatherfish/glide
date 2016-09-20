@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -16,12 +17,10 @@ import android.os.Build;
 import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
-
 import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.tests.BackgroundUtil;
 import com.bumptech.glide.tests.GlideShadowLooper;
 import com.bumptech.glide.tests.Util;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +35,7 @@ import org.robolectric.util.ActivityController;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE, sdk = 18, shadows = GlideShadowLooper.class)
+@TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class RequestManagerRetrieverTest {
   private static final String PARENT_TAG = "parent";
   private RetrieverHarness[] harnesses;
@@ -165,6 +165,7 @@ public class RequestManagerRetrieverTest {
     helpTestCanGetRequestManagerFromDetachedFragment();
   }
 
+  @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
   private void helpTestCanGetRequestManagerFromDetachedFragment() {
     Activity activity = Robolectric.buildActivity(Activity.class).create().start().resume().get();
     android.app.Fragment fragment = new android.app.Fragment();
@@ -213,14 +214,14 @@ public class RequestManagerRetrieverTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testThrowsIfActivityDestroyed() {
-    DefaultRetrieverHarness harness = new DefaultRetrieverHarness();
+    RetrieverHarness harness = new DefaultRetrieverHarness();
     harness.getController().pause().stop().destroy();
     harness.doGet();
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testThrowsIfFragmentActivityDestroyed() {
-    SupportRetrieverHarness harness = new SupportRetrieverHarness();
+    RetrieverHarness harness = new SupportRetrieverHarness();
     harness.getController().pause().stop().destroy();
     harness.doGet();
   }
@@ -232,7 +233,7 @@ public class RequestManagerRetrieverTest {
 
   @Test
   public void testChecksIfContextIsFragmentActivity() {
-    SupportRetrieverHarness harness = new SupportRetrieverHarness();
+    RetrieverHarness harness = new SupportRetrieverHarness();
     RequestManager requestManager = harness.doGet();
 
     assertEquals(requestManager, retriever.get((Context) harness.getController().get()));
@@ -240,7 +241,7 @@ public class RequestManagerRetrieverTest {
 
   @Test
   public void testChecksIfContextIsActivity() {
-    DefaultRetrieverHarness harness = new DefaultRetrieverHarness();
+    RetrieverHarness harness = new DefaultRetrieverHarness();
     RequestManager requestManager = harness.doGet();
 
     assertEquals(requestManager, retriever.get((Context) harness.getController().get()));
@@ -248,9 +249,9 @@ public class RequestManagerRetrieverTest {
 
   @Test
   public void testHandlesContextWrappersForActivities() {
-    DefaultRetrieverHarness harness = new DefaultRetrieverHarness();
+    RetrieverHarness harness = new DefaultRetrieverHarness();
     RequestManager requestManager = harness.doGet();
-    ContextWrapper contextWrapper = new ContextWrapper((Context) harness.getController().get());
+    ContextWrapper contextWrapper = new ContextWrapper(harness.getController().get());
 
     assertEquals(requestManager, retriever.get(contextWrapper));
   }
@@ -316,6 +317,7 @@ public class RequestManagerRetrieverTest {
   }
 
   @Test
+  @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
   public void testDoesNotThrowIfAskedToGetManagerForActivityPreJellYBeanMr1() {
     Util.setSdkVersionInt(Build.VERSION_CODES.JELLY_BEAN);
     Activity activity = Robolectric.buildActivity(Activity.class).create().start().resume().get();
@@ -326,6 +328,7 @@ public class RequestManagerRetrieverTest {
   }
 
   @Test
+  @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
   public void testDoesNotThrowIfAskedToGetManagerForFragmentPreHoneyCombMr2() {
     Util.setSdkVersionInt(Build.VERSION_CODES.HONEYCOMB_MR1);
     Activity activity = Robolectric.buildActivity(Activity.class).create().start().resume().get();
@@ -339,6 +342,7 @@ public class RequestManagerRetrieverTest {
   }
 
   @Test
+  @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
   public void testDoesNotThrowIfAskedToGetManagerForFragmentPreJellyBeanMr1() {
     Util.setSdkVersionInt(Build.VERSION_CODES.JELLY_BEAN);
     Activity activity = Robolectric.buildActivity(Activity.class).create().start().resume().get();
@@ -352,14 +356,13 @@ public class RequestManagerRetrieverTest {
   }
 
   private interface RetrieverHarness {
+    ActivityController<?> getController();
 
-    public ActivityController getController();
+    RequestManager doGet();
 
-    public RequestManager doGet();
+    boolean hasFragmentWithTag(String tag);
 
-    public boolean hasFragmentWithTag(String tag);
-
-    public void addFragmentWithTag(String tag, RequestManager manager);
+    void addFragmentWithTag(String tag, RequestManager manager);
   }
 
   public class DefaultRetrieverHarness implements RetrieverHarness {
@@ -378,7 +381,7 @@ public class RequestManagerRetrieverTest {
     }
 
     @Override
-    public ActivityController getController() {
+    public ActivityController<?> getController() {
       return controller;
     }
 
@@ -421,7 +424,7 @@ public class RequestManagerRetrieverTest {
     }
 
     @Override
-    public ActivityController getController() {
+    public ActivityController<?> getController() {
       return controller;
     }
 
