@@ -48,7 +48,8 @@ class ThumbnailStreamOpener {
     try {
       is = contentResolver.openInputStream(uri);
       return ImageHeaderParserUtils.getOrientation(parsers, is, byteArrayPool);
-    } catch (IOException e) {
+      // openInputStream can throw NPEs.
+    } catch (IOException | NullPointerException e) {
       if (Log.isLoggable(TAG, Log.DEBUG)) {
         Log.d(TAG, "Failed to open uri: " + uri, e);
       }
@@ -88,7 +89,13 @@ class ThumbnailStreamOpener {
       }
     }
     if (thumbnailUri != null) {
-      inputStream = contentResolver.openInputStream(thumbnailUri);
+      try {
+        inputStream = contentResolver.openInputStream(thumbnailUri);
+        // openInputStream can throw NPEs.
+      } catch (NullPointerException e) {
+        throw (FileNotFoundException)
+          new FileNotFoundException("NPE opening uri: " + thumbnailUri).initCause(e);
+      }
     }
     return inputStream;
   }
